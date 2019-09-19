@@ -15,8 +15,8 @@
 using namespace std;
 using geometry_msgs::Twist;
 
-const string WRITE_VELOCITY_TOPIC = "/robot1/cmd_vel";
-const string READ_LASER_TOPIC = "/robot1/laser_1";
+const string WRITE_VELOCITY_TOPIC = "cmd_vel";
+const string READ_LASER_TOPIC = "laser_1";
 
 //I don't really know how to find this so it's hardcoded
 //added a little padding
@@ -141,8 +141,8 @@ bool can_move_direction(double linear, double angular, bool debug = false)
     //angle over  =  (angular * time))
     // y change = r - rsin theta
     // x change = r - rcos theta
-
-    //might be a little conservative.
+    
+    //predict ahead by this amount of time
     double time = 0.75;
     
     if(angular == 0)
@@ -161,27 +161,13 @@ bool can_move_direction(double linear, double angular, bool debug = false)
     double max_x = robot_radius;
     double max_y = robot_radius;
     
-    if(debug)
-    {
-            ROS_INFO("Checking for objects in box y[%f, %f], x[%f, %f]", min_y, max_y, min_x, max_x);
-    }
     double towards_y;
     
     if(abs(theta) < PI / 2)
     {
-        if(debug)
-        {
-            ROS_INFO("lin = %f, omega = %f, theta = %f, r= %f", linear, angular, theta, r);
-            ROS_INFO("Checking for objects in box y[%f, %f], x[%f, %f]", min_y, max_y, min_x, max_x);
-        }
     
         max_x += r - (r * sin(theta));
         
-        if(debug)
-        {
-            ROS_INFO("lin = %f, omega = %f, theta = %f, r= %f", linear, angular, theta, r);
-            ROS_INFO("Checking for objects in box y[%f, %f], x[%.2f, %.2f]", min_y, max_y, min_x, max_x);
-        }
         towards_y = r - (r * cos(theta));
     }
     
@@ -190,24 +176,17 @@ bool can_move_direction(double linear, double angular, bool debug = false)
         min_x -= r;
         max_x += r;
         towards_y = 2 * r;
-        
-        if(debug)
-        {
-            ROS_INFO("gothere 1 %d", full_circle);
-        }
     }
     else if(abs(theta) > PI)
     {
         max_x += r;
         towards_y = 2 * r;
         min_x -= r - (r * sin(theta));
-        ROS_INFO("gothere 2");
     }
     else if(abs(theta) > (PI / 2))
     {
         max_x += r;
         towards_y = r - (r * cos(theta));
-        ROS_INFO("gothere 3");
     }
     
     
@@ -219,6 +198,14 @@ bool can_move_direction(double linear, double angular, bool debug = false)
     else
     {
         min_y -= towards_y;
+    }
+    
+    if(sign(linear) == -1)
+    {
+        //moving backwards :(
+        double temp = min_x;
+        min_x = -1 * max_x;
+        max_x = -1 * min_x;
     }
     
     if(debug)

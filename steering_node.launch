@@ -1,0 +1,5 @@
+<launch>
+    <arg name="requested_name" default="robot0"/>
+    <env name="ROS_NAMESPACE" value=$(arg requested_name)/>
+    <node name="steering_controll" type="steering_node" pkg="lab_2_mover"/>
+</launch>
