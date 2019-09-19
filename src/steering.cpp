@@ -363,14 +363,20 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "lab_2_steering");
     
+    
     string read_velocity_topic = parse_desired_topic(argc, argv);
     ROS_INFO("Reading velocity from topic %s\n", read_velocity_topic.c_str());
     ROS_INFO("Writing velocity to topic %s\n", WRITE_VELOCITY_TOPIC.c_str());
+    
+
     
     //Let launch file handle remapping
     //Would be cool to print the remapping info
     ros::NodeHandle node_handle;
     
+    string ns = ros::this_node::getNamespace();
+    ROS_INFO("Detected namespace %s", ns.c_str());
+        
     ros::Publisher velocity_publisher = node_handle.advertise<Twist>(WRITE_VELOCITY_TOPIC, 200);
     ros::Subscriber velocity_subscriber = node_handle.subscribe(read_velocity_topic, 200, desired_velocity_callback);
     ros::Subscriber laser_subscriber = node_handle.subscribe(READ_LASER_TOPIC, 1000, laser_callback);
