@@ -35,7 +35,7 @@ double desired_angular_velocity;
 float start_angle;
 float angle_step;
 vector<float> current_ranges;
-
+bool heard_from_robot = false;
 
 string parse_desired_topic(int argc, char** argv)
 {
@@ -65,7 +65,6 @@ void desired_velocity_callback(const Twist::ConstPtr& desired_velocity_twist)
 {
     desired_velocity = desired_velocity_twist->linear.x;
     desired_angular_velocity = desired_velocity_twist->angular.z;
-    
     //ROS_INFO("Receiving des vel info %f %f", desired_velocity, desired_angular_velocity);
 }
 
@@ -82,6 +81,8 @@ void laser_callback(const sensor_msgs::LaserScan::ConstPtr& laser_scan)
     
     start_angle = laser_scan->angle_min;
     angle_step = laser_scan->angle_increment;
+    
+    heard_from_robot = true;
     
     //ROS_INFO("Receiving laser info");
     /*float current_angle = start_angle;
@@ -382,10 +383,24 @@ int main(int argc, char** argv)
     ros::Subscriber laser_subscriber = node_handle.subscribe(READ_LASER_TOPIC, 1000, laser_callback);
     
     ros::Rate loop_rate(10);
+    
+    //counter to decide when to say I haven't heard any lidar messages
+    int counter = 1;
+    int modulo = 100;
+    
     //Main loop
     while(ros::ok())
     {
-        steer(&velocity_publisher);
+        if(heard_from_robot)
+        {
+            steer(&velocity_publisher);
+        }
+        else if(counter % modulo == 0)
+        {
+            ROS_WARN("Haven't heard from any robot yet. Expecting messages on %s/%s", ns.c_str(), READ_LASER_TOPIC.c_str());
+        }
+        
+        counter++;
         
         //process all callbacks
         ros::spinOnce();

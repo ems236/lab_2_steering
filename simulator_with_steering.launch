@@ -1,0 +1,4 @@
+<launch>
+    <include file="$(find lab_2_mover)steering_node.launch" pass_all_args="true"/>
+    <include file="$(find stdr_launchers)/launch/server_with_map_and_gui.launch"/>
+</launch>
