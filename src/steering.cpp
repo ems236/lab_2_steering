@@ -21,6 +21,7 @@ const string READ_LASER_TOPIC = "/robot1/laser_1";
 //I don't really know how to find this so it's hardcoded
 //added a little padding
 const double robot_radius = 0.2;
+const double unpadded_radius = 0.15;
 
 //The x-axis is always forward
 //Only turning angle is z axis
@@ -65,7 +66,7 @@ void desired_velocity_callback(const Twist::ConstPtr& desired_velocity_twist)
     desired_velocity = desired_velocity_twist->linear.x;
     desired_angular_velocity = desired_velocity_twist->angular.z;
     
-    ROS_INFO("Receiving des vel info %f %f", desired_velocity, desired_angular_velocity);
+    //ROS_INFO("Receiving des vel info %f %f", desired_velocity, desired_angular_velocity);
 }
 
 //records info and exits
@@ -110,8 +111,16 @@ bool object_in_range(double min_y, double max_y, double min_x, double max_x)
             double y = *current * sin(current_angle);
             double x = *current * cos(current_angle);
             
-            if((min_y <= y && y <= max_y) && (min_x <= x && max_x <= x))
+            if(abs(current_angle) < 0.2)
             {
+                //ROS_INFO("Checking for objects in box y[%f, %f], x[%f, %f]", min_y, max_y, min_x, max_x);
+            }
+            
+            
+            if((min_y <= y && y <= max_y) && (min_x <= x && x <= max_x))
+            {
+                ROS_INFO("Checking for objects in box y[%f, %f], x[%f, %f]", min_y, max_y, min_x, max_x);
+                ROS_INFO("stopping for object at angle %f r %f. In x,y thats %f %f", current_angle, *current, x, y);
                 return true;
             }
         }
@@ -130,15 +139,15 @@ bool can_move_direction(double linear, double angular)
     }
     //motion described by circle radius r = linear * (2pi / angular) / 2pi = linear / angular
     //angle over  =  (angular * time))
-    // y change = r - rcos theta
-    // x change = r - rsin theta
+    // y change = r - rsin theta
+    // x change = r - rcos theta
 
     //might be a little conservative.
-    double time = 0.5;
+    double time = 0.75;
     
     if(angular == 0)
     {
-        return !object_in_range(-1 * robot_radius, robot_radius, -1 * robot_radius, time * linear);
+        return !object_in_range(-1 * unpadded_radius, unpadded_radius, -1 * unpadded_radius, unpadded_radius + time * linear);
     }
     
     double r = linear / angular;
@@ -156,8 +165,8 @@ bool can_move_direction(double linear, double angular)
     
     if(theta < PI / 2)
     {
-        max_x += r - (r * cos(theta));
-        towards_y = r - (r * sin(theta));
+        max_x += r - (r * sin(theta));
+        towards_y = r - (r * cos(theta));
     }
     
     else if(theta > (3 * PI / 2) || full_circle)
@@ -174,6 +183,7 @@ bool can_move_direction(double linear, double angular)
     else if(theta > (PI / 2))
     {
         max_x += r;
+        towards_y = r - (r * cos(theta));
     }
     
     
@@ -223,6 +233,7 @@ Twist avoid_obstacle_velocity()
 {
     const double LOW_SPEED_THRESHOLD = 0.05;
     /*algorithm:
+    //This isn't working. Change to every time you see a wall it stops and turns until it doesn't see a wall.
     while(can't move)
     {
         set angular pi / 4
@@ -235,22 +246,29 @@ Twist avoid_obstacle_velocity()
     */
     double new_speed = current_velocity;
     double new_angle = current_angular_velocity;
-    bool found_new_velocity = false;
-    while(!found_new_velocity && new_speed > LOW_SPEED_THRESHOLD)
+    
+    ROS_INFO("Turning to avoid an obstacle");
+    
+    while(new_speed > LOW_SPEED_THRESHOLD)
     {
         if(can_move_direction(new_speed, new_angle + (PI / 4)))
         {
+            ROS_INFO("Turning left to avoid an obstacle");
             return twist_for(new_speed, new_angle + (PI / 4));
         }
         
         if(can_move_direction(new_speed, new_angle - (PI / 4)))
         {
+            ROS_INFO("Turning right to avoid an obstacle");
             return twist_for(new_speed, new_angle + (PI / 4));
         }
         
+        ROS_INFO("Halving speed");
         new_speed /= 2;
     }
     
+    
+    ROS_INFO("Turning left and stopping motion to avoid an obstacle");
     return twist_for(0, PI / 2);
 }
 
@@ -258,19 +276,20 @@ void publish_new_velocity(Twist new_vel, ros::Publisher* velocity_publisher)
 {
     current_velocity = new_vel.linear.x;
     current_angular_velocity = new_vel.angular.z;
+    ROS_INFO("Setting velocity to lin: %f ang: %f", new_vel.linear.x, new_vel.angular.z);
     velocity_publisher->publish(new_vel);
 }
 
 void steer(ros::Publisher* velocity_publisher)
 {
-    const int SPEED_STEP = 0.05;
+    const double SPEED_STEP = 0.05;
     if(can_move_desired())
     {
         if(!is_current_desired())
         {
             //publish new twist;
             ROS_INFO("Setting velocity to current desired");
-            publish_new_velocity(twist_for(desired_velocity, desired_angular_velocity), velocity_publisher)
+            publish_new_velocity(twist_for(desired_velocity, desired_angular_velocity), velocity_publisher);
         }
         
         return;
@@ -280,25 +299,34 @@ void steer(ros::Publisher* velocity_publisher)
     //prioritize not spinning in place
    
     
+    /*
     if(can_move_current())
     {
+        ROS_INFO("Can move in current direction");
+        
+        
         //try and speed up because that's fun
         if(can_move_direction(new_speed, current_angular_velocity))
         {
-            ROS_INFO("Increasing speed");
+            ROS_INFO("Increasing speed to %f", new_speed);
             //update speed;
-            publish_new_velocity(twist_for(new_speed, velocity_publisher));
+            publish_new_velocity(twist_for(new_speed, current_angular_velocity), velocity_publisher);
+            return;
         }
        
-        else if(can_move_straight(current_velocity) && can_move_straight(new_speed))
-        {
-            ROS_INFO("Moving in a straight line");
-            //update speed
-            publish_new_velocity(twist_for(new_speed, 0), velocity_publisher);
-        }
+        
         
         return; 
     }
+    */
+    if(can_move_straight(current_velocity) && can_move_straight(new_speed))
+    {
+        ROS_INFO("Moving in a straight line at speed %f", new_speed);
+        //update speed
+        publish_new_velocity(twist_for(new_speed, 0), velocity_publisher);
+        return;
+    }
+    
     
     //make up a new velocity
     ROS_INFO("Avoiding an obstacle");
