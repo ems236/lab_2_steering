@@ -51,12 +51,25 @@
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>std_messages</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>stdr_launchers</build_depend>
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>std_messages</build_export_depend>
+  <build_export_depend>geometry_msgs</build_export_depend>
+  <build_export_depend>sensor_msgs</build_export_depend>
+  <build_export_depend>stdr_launchers</build_export_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>std_messages</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>stdr_launchers</exec_depend>
 
-
+  <!--
+      geometry_msgs
+  sensor_msgs
+  stdr_launchers
+  -->
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- Other tools can request additional information be placed here -->
