@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <time.h>
 #include <string>
 #include <vector>
 #include <math.h>
@@ -288,8 +289,9 @@ Twist avoid_obstacle_velocity()
     }
     */
     
+    int rand_sign = rand() % 2 == 0 ? 1 : -1;
     ROS_INFO("Turning left and stopping motion to avoid an obstacle");
-    return twist_for(0, PI / 4);
+    return twist_for(0, rand_sign * PI / 4);
 }
 
 void publish_new_velocity(Twist new_vel, ros::Publisher* velocity_publisher)
@@ -364,13 +366,13 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "lab_2_steering");
     
-    
+    srand(time(NULL));   
     string read_velocity_topic = parse_desired_topic(argc, argv);
     ROS_INFO("Reading velocity from topic %s\n", read_velocity_topic.c_str());
     ROS_INFO("Writing velocity to topic %s\n", WRITE_VELOCITY_TOPIC.c_str());
     
 
-    
+ 	   
     //Let launch file handle remapping
     //Would be cool to print the remapping info
     ros::NodeHandle node_handle;
