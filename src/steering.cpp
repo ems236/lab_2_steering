@@ -299,7 +299,7 @@ void publish_new_velocity(Twist new_vel, ros::Publisher* velocity_publisher)
 {
     current_velocity = new_vel.linear.x;
     current_angular_velocity = new_vel.angular.z;
-    ROS_INFO("Setting velocity to lin: %f ang: %f", new_vel.linear.x, new_vel.angular.z);
+    ROS_DEBUG("Setting velocity to lin: %f ang: %f", new_vel.linear.x, new_vel.angular.z);
     velocity_publisher->publish(new_vel);
 }
 
@@ -322,7 +322,7 @@ void steer(ros::Publisher* velocity_publisher)
     //prioritize not spinning in place
     if(can_move_direction(new_speed, current_angular_velocity))
     {
-        ROS_INFO("Increasing speed to %f", new_speed);
+        ROS_DEBUG("Increasing speed to %f", new_speed);
         //update speed;
         publish_new_velocity(twist_for(new_speed, current_angular_velocity), velocity_publisher);
         return;
