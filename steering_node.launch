@@ -1,8 +1,7 @@
 <launch>
     <arg name="namespace" default="robot0"/>
-    <arg name="desired_velocity" default="des_vel"/>
-    <env name="ROS_NAMESPACE" value="$(arg namespace)"/>
-    <node name="$(anon steering_control)" type="steering_node" pkg="lab_2_mover" output="screen" args="-n$(arg desired_velocity)">
+    <arg name="lidar_topic" default="lidar1"/>
+    <node name="$(anon steering_control)" type="steering_node" pkg="lab_2_mover" output="screen" args="-n$(arg lidar_topic)">
         <env name="ROS_NAMESPACE" value="$(arg namespace)"/>
     </node>
 </launch>

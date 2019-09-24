@@ -1,5 +1,5 @@
 #include <cstdlib>
-#include <time.h>
+//#include <time.h>
 #include <string>
 #include <vector>
 #include <math.h>
@@ -17,7 +17,7 @@ using namespace std;
 using geometry_msgs::Twist;
 
 const string WRITE_VELOCITY_TOPIC = "cmd_vel";
-const string READ_LASER_TOPIC = "laser_1";
+const string READ_VELOCITY_TOPIC = "des_vel";
 
 //I don't really know how to find this so it's hardcoded
 //added a little padding
@@ -40,7 +40,7 @@ bool heard_from_robot = false;
 
 string parse_desired_topic(int argc, char** argv)
 {
-    const string DEFAULT_TOPIC = "des_vel";
+    const string DEFAULT_TOPIC = "lidar1";
     string topic_name = DEFAULT_TOPIC;
     int opt;
     while ((opt = getopt(argc, (argv), "n:")) != -1) 
@@ -56,7 +56,7 @@ string parse_desired_topic(int argc, char** argv)
         }
     }
     
-    ROS_INFO("Parsed %s as the desired velocity topic", topic_name.c_str());
+    ROS_INFO("Parsed %s as the desired lidar topic", topic_name.c_str());
     
     return topic_name;
 }
@@ -113,10 +113,11 @@ bool object_in_range(double min_y, double max_y, double min_x, double max_x)
             double y = *current * sin(current_angle);
             double x = *current * cos(current_angle);
             
+			/*
             if(abs(current_angle) < 0.2)
             {
-                //ROS_INFO("Checking for objects in box y[%f, %f], x[%f, %f]", min_y, max_y, min_x, max_x);
-            }
+                ROS_INFO("Checking for objects in box y[%f, %f], x[%f, %f]", min_y, max_y, min_x, max_x);
+            }*/
             
             
             if((min_y <= y && y <= max_y) && (min_x <= x && x <= max_x))
@@ -289,9 +290,9 @@ Twist avoid_obstacle_velocity()
     }
     */
     
-    int rand_sign = rand() % 2 == 0 ? 1 : -1;
-    ROS_INFO("Turning left and stopping motion to avoid an obstacle");
-    return twist_for(0, rand_sign * PI / 4);
+    //int rand_sign = rand() % 2 == 0 ? 1 : -1;
+    ROS_INFO("Turning left and stopping forward motion to avoid an obstacle");
+    return twist_for(0, PI / 4);
 }
 
 void publish_new_velocity(Twist new_vel, ros::Publisher* velocity_publisher)
@@ -366,10 +367,11 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "lab_2_steering");
     
-    srand(time(NULL));   
-    string read_velocity_topic = parse_desired_topic(argc, argv);
-    ROS_INFO("Reading velocity from topic %s\n", read_velocity_topic.c_str());
+    //srand(time(NULL));   
+    string read_lidar_topic = parse_desired_topic(argc, argv);
+    ROS_INFO("Reading velocity from topic %s\n", READ_VELOCITY_TOPIC.c_str());
     ROS_INFO("Writing velocity to topic %s\n", WRITE_VELOCITY_TOPIC.c_str());
+	ROS_INFO("Reading lidar topic from %s\n", read_lidar_topic.c_str());
     
 
  	   
@@ -381,8 +383,8 @@ int main(int argc, char** argv)
     ROS_INFO("Detected namespace %s", ns.c_str());
         
     ros::Publisher velocity_publisher = node_handle.advertise<Twist>(WRITE_VELOCITY_TOPIC, 200);
-    ros::Subscriber velocity_subscriber = node_handle.subscribe(read_velocity_topic, 200, desired_velocity_callback);
-    ros::Subscriber laser_subscriber = node_handle.subscribe(READ_LASER_TOPIC, 1000, laser_callback);
+    ros::Subscriber velocity_subscriber = node_handle.subscribe(READ_VELOCITY_TOPIC, 200, desired_velocity_callback);
+    ros::Subscriber laser_subscriber = node_handle.subscribe(read_lidar_topic, 1000, laser_callback);
     
     ros::Rate loop_rate(10);
     
@@ -399,7 +401,7 @@ int main(int argc, char** argv)
         }
         else if(counter % modulo == 0)
         {
-            ROS_WARN("Haven't heard from any robot yet. Expecting messages on %s/%s", ns.c_str(), READ_LASER_TOPIC.c_str());
+            ROS_WARN("Haven't heard from any robot yet. Expecting messages on %s/%s", ns.c_str(), read_lidar_topic.c_str());
         }
         
         counter++;
